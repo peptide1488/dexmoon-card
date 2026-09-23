@@ -419,7 +419,8 @@ document.getElementById('fillBtn').onclick=async()=>{const msg=document.getEleme
   catch(e){msg.textContent='Could not fill: '+e.message;}};
 document.getElementById('coinLink').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('fillBtn').click();});
 
-window.dexCard=async(o={})=>{C=JSON.parse(JSON.stringify(DEFAULT));if(o.theme){const a=THEMES[o.theme]||o.theme;applyTheme(a,THEMES[o.theme]?o.theme:'custom');}if(o.preset)deepMerge(C,o.preset);
+window.dexCard=async(o={})=>{C=JSON.parse(JSON.stringify(DEFAULT));if(o.preset)deepMerge(C,o.preset);   // template first, THEN the colour scheme on top (it was the other way round, so the template's colours always won)
+  if(o.theme){const a=THEMES[o.theme]||o.theme;applyTheme(a,THEMES[o.theme]?o.theme:'custom');}
   if(o.token!=null)C.label.text=o.token; if(o.headline!=null)C.badge.text=o.headline;
   if(o.ticker!=null)C.rows.items[0][1]='$'+String(o.ticker).replace(/^\$+/,''); if(o.chain!=null)C.rows.items[1][1]=o.chain;
   C.rows.items[2][1]=o.updated||((o.date&&o.time)?`${o.date} · ${o.time} UTC`:nowUTC());

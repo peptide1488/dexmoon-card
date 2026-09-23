@@ -81,7 +81,7 @@ canvas.over{outline:3px dashed var(--acc);outline-offset:4px}
   <div id="tplList"></div>
   <div class="btns" style="margin-top:8px"><button class="ghost" id="saveCfg">Export all (file)</button><button class="ghost" id="loadCfgBtn">Import file</button><input type="file" id="loadCfg" accept=".json" hidden><button class="ghost" id="resetAll">Reset everything</button></div>
   <p class="hint">Templates are saved in this browser. To send one to the admin: <b>Save + download .json</b> (or ⬇ on a saved one) and send that file - the admin forwards it to the Telegram bot, then <code>/use name</code>. Use Export to back them up or send them to someone (Import loads them back). A template file in the tool's <code>presets</code> folder can be used by the Telegram bot with a <code>Layout: name</code> line.</p>
-  <p class="hint">Transparent parts of the hero are click-through, so you can grab the moon behind it; Alt+click cycles through stacked elements; arrow keys nudge the selected element (Shift = 10px). You can also drop a hero image straight onto the card. Drag any element on the card to move it. Every element can be hidden, moved, resized and recoloured below.</p>
+  <p class="hint">Click anything on the card, then drag a corner handle to resize it. Transparent parts of the hero are click-through, so you can grab the moon behind it; Alt+click cycles through stacked elements; arrow keys nudge the selected element (Shift = 10px). You can also drop a hero image straight onto the card. Drag any element on the card to move it. Every element can be hidden, moved, resized and recoloured below.</p>
 </div>
 <div id="stageWrap">
   <canvas id="cv" width="2400" height="1350"></canvas>
@@ -201,7 +201,9 @@ function render(){
   const f=C.footer; if(f.show){ctx.font=`400 ${f.size}px Inter`;let x=f.x;ctx.fillStyle=f.color;ctx.fillText(f.site,x,f.y);x+=ctx.measureText(f.site).width+18;
       ctx.fillStyle=f.divider;ctx.fillText('|',x,f.y);x+=ctx.measureText('|').width+18;ctx.fillStyle=f.color;ctx.fillText(f.promo,x,f.y);x+=ctx.measureText(f.promo).width;
       ctx.font=`700 ${f.size}px Inter`;ctx.fillStyle=f.strong;ctx.fillText(f.code,x,f.y);x+=ctx.measureText(f.code).width;boxes.footer=[f.x,f.y-f.size/2-2,x-f.x,f.size+4];}
-  if(SEL&&boxes[SEL]){const [x,y,w,h]=boxes[SEL];ctx.save();ctx.setLineDash([8,6]);ctx.lineWidth=2;ctx.strokeStyle='#b48cff';ctx.strokeRect(x-6,y-6,w+12,h+12);ctx.restore();}
+  if(SEL&&boxes[SEL]){const [x,y,w,h]=boxes[SEL];ctx.save();ctx.setLineDash([8,6]);ctx.lineWidth=2;ctx.strokeStyle='#b48cff';ctx.strokeRect(x-6,y-6,w+12,h+12);
+    ctx.setLineDash([]);ctx.fillStyle='#ffffff';ctx.strokeStyle='#8b6bb3';ctx.lineWidth=2;
+    for(const [hx,hy] of handlePts(SEL)){ctx.fillRect(hx-9,hy-9,18,18);ctx.strokeRect(hx-9,hy-9,18,18);}ctx.restore();}
 }
 function exportURL(scale){const s=SEL;SEL=null;render();let u;
   if((scale||exportScale())===2)u=cv.toDataURL('image/png');
@@ -265,14 +267,27 @@ function hit(k,x,y){const b=boxes[k];if(!b||x<b[0]||x>b[0]+b[2]||y<b[1]||y>b[1]+
   if(k==='bgmoon'){const r=b[2]/2;return (x-b[0]-r)**2+(y-b[1]-r)**2<=r*r;}
   if(k==='hero')return heroOpaque(x,y);return true;}
 let cycle={x:-1,y:-1,i:0};
-cv.addEventListener('pointerdown',e=>{const [x,y]=pt(e);const order=['icon','wordmark','label','badge','rows','avatar','handle','footer','hero','bgmoon'];
+function handlePts(k){const b=boxes[k];if(!b)return[];   // corners of the VISIBLE part (big heroes run off the card, so their real corners are unreachable)
+  const x0=Math.max(b[0]-6,12),y0=Math.max(b[1]-6,12),x1=Math.min(b[0]+b[2]+6,W-12),y1=Math.min(b[1]+b[3]+6,H-12);return[[x0,y0],[x1,y0],[x0,y1],[x1,y1]];}
+function onHandle(x,y){if(!SEL)return false;return handlePts(SEL).some(([hx,hy])=>Math.abs(x-hx)<=14&&Math.abs(y-hy)<=14);}
+// what "size" means per element, and how to scale it
+function getSize(k){const o=C[k];return k==='hero'||k==='bgmoon'?o.r:('size' in o?o.size:('h' in o?o.h:1));}
+function setSize(k,v){const o=C[k];if(k==='hero'||k==='bgmoon')o.r=Math.max(30,v);else if(k==='wordmark'){o.h=Math.max(8,v);o.size=Math.max(8,v);}else if('size' in o)o.size=Math.max(6,v);else if('h' in o)o.h=Math.max(8,v);
+  if(k==='hero')syncHeroSize();}
+function centerOf(k){const b=boxes[k];return[b[0]+b[2]/2,b[1]+b[3]/2];}
+cv.addEventListener('pointerdown',e=>{const [x,y]=pt(e);
+  if(onHandle(x,y)&&SEL!=='rows'&&SEL!=='footer'){const [cx,cy]=centerOf(SEL);drag={k:SEL,resize:true,cx,cy,d0:Math.hypot(x-cx,y-cy)||1,s0:getSize(SEL),x,y,x0:x,y0:y};
+    cv.setPointerCapture(e.pointerId);cv.style.cursor='nwse-resize';return;}
+  const order=['icon','wordmark','label','badge','rows','avatar','handle','footer','hero','bgmoon'];
   const hits=order.filter(k=>hit(k,x,y));if(!hits.length)return;
   // Alt+click (or clicking the same spot again) cycles through stacked elements, e.g. hero -> moon behind it
   if(Math.abs(cycle.x-x)<4&&Math.abs(cycle.y-y)<4&&e.altKey)cycle.i=(cycle.i+1)%hits.length;else cycle={x,y,i:e.altKey?Math.min(1,hits.length-1):0};
   for(const k of [hits[cycle.i]]){{drag={k,x,y,x0:x,y0:y};cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing';return;}}});
-cv.addEventListener('pointermove',e=>{if(!drag)return;const [x,y]=pt(e),dx=Math.round(x-drag.x),dy=Math.round(y-drag.y);drag.x+=dx;drag.y+=dy;
+cv.addEventListener('pointermove',e=>{if(!drag){const [x,y]=pt(e);cv.style.cursor=onHandle(x,y)?'nwse-resize':'grab';return;}
+  if(drag.resize){const [x,y]=pt(e);setSize(drag.k,drag.s0*Math.hypot(x-drag.cx,y-drag.cy)/drag.d0);render();return;}
+  const [x,y]=pt(e),dx=Math.round(x-drag.x),dy=Math.round(y-drag.y);drag.x+=dx;drag.y+=dy;
   const o=C[drag.k];if(drag.k==='hero'){o.cx+=dx;o.cy+=dy;}else if(drag.k==='bgmoon'){o.dx+=dx;o.dy+=dy;}else{o.x+=dx;o.y+=dy;if('vx' in o)o.vx+=dx;}render();});
-cv.addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;cv.style.cursor='grab';
+cv.addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;cv.style.cursor='grab';if(d.resize){buildEls();SEL=d.k;render();return;}
   const moved=Math.abs(d.x-d.x0)+Math.abs(d.y-d.y0)>3; buildEls(); select(d.k, moved?null:d.y0);});
 // click an element on the card -> select it, open its settings and focus the field that edits it
 const QUICK_OF={label:'Token name',badge:'Headline',handle:'Handle',footer:'Ref code'};

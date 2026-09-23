@@ -77,10 +77,10 @@ canvas.over{outline:3px dashed var(--acc);outline-offset:4px}
   <div class="f"><label>Save</label><div style="display:flex;flex-direction:column;gap:4px">
     <label class="hint" style="display:flex;gap:6px;align-items:center"><input type="radio" name="tplMode" value="layout" checked> layout + colours only (keeps it reusable for any coin)</label>
     <label class="hint" style="display:flex;gap:6px;align-items:center"><input type="radio" name="tplMode" value="full"> everything (incl. text + images)</label></div></div>
-  <div class="f"><label></label><button id="tplSave">Save template</button></div>
+  <div class="f"><label></label><div class="btns"><button id="tplSave">Save template</button><button class="ghost" id="tplSaveDl">Save + download .json</button></div></div>
   <div id="tplList"></div>
   <div class="btns" style="margin-top:8px"><button class="ghost" id="saveCfg">Export all (file)</button><button class="ghost" id="loadCfgBtn">Import file</button><input type="file" id="loadCfg" accept=".json" hidden><button class="ghost" id="resetAll">Reset everything</button></div>
-  <p class="hint">Templates are saved in this browser. Use Export to back them up or send them to someone (Import loads them back). A template file in the tool's <code>presets</code> folder can be used by the Telegram bot with a <code>Layout: name</code> line.</p>
+  <p class="hint">Templates are saved in this browser. To send one to the admin: <b>Save + download .json</b> (or ⬇ on a saved one) and send that file - the admin forwards it to the Telegram bot, then <code>/use name</code>. Use Export to back them up or send them to someone (Import loads them back). A template file in the tool's <code>presets</code> folder can be used by the Telegram bot with a <code>Layout: name</code> line.</p>
   <p class="hint">Transparent parts of the hero are click-through, so you can grab the moon behind it; Alt+click cycles through stacked elements; arrow keys nudge the selected element (Shift = 10px). You can also drop a hero image straight onto the card. Drag any element on the card to move it. Every element can be hidden, moved, resized and recoloured below.</p>
 </div>
 <div id="stageWrap">
@@ -322,14 +322,19 @@ function tplList(){const box=document.getElementById('tplList'),all=tplAll();box
   for(const n of names){const t=all[n],d=document.createElement('div');d.className='tpl';
     d.innerHTML=`<b title="${n.replace(/"/g,'&quot;')}"></b><small>${t.mode==='full'?'full':'layout'}</small>`;d.querySelector('b').textContent=n;
     const L=document.createElement('button');L.textContent='Load';L.onclick=()=>{applyTemplate(t);document.getElementById('tplName').value=n;};
+    const D=document.createElement('button');D.className='ghost';D.textContent='⬇';D.title='download this template as a .json file (send it to the admin / bot)';D.onclick=()=>downloadTpl(n,t);
     const U=document.createElement('button');U.className='ghost';U.textContent='Update';U.title='overwrite with the current card';U.onclick=()=>{saveTpl(n,t.mode);};
     const X=document.createElement('button');X.className='ghost';X.textContent='✕';X.title='delete';X.onclick=()=>{if(confirm('Delete template "'+n+'"?')){const a=tplAll();delete a[n];tplPut(a);tplList();}};
-    d.append(L,U,X);box.appendChild(d);}}
+    d.append(L,D,U,X);box.appendChild(d);}}
 function saveTpl(name,mode){name=(name||'').trim();if(!name){alert('Give the template a name first.');return;}
   const t={mode,saved:Date.now(),config:mode==='full'?JSON.parse(JSON.stringify(C)):layoutOnly(C)};
   if(mode==='full'){if(IM.hero)t.hero=imgURL(IM.hero);if(IM.avatar)t.avatar=imgURL(IM.avatar);}
   const all=tplAll();all[name]=t;if(tplPut(all)){tplList();const m=document.getElementById('tplSave');m.textContent='Saved ✓';setTimeout(()=>m.textContent='Save template',1200);}}
 function imgURL(img){if(img.src&&img.src.startsWith('data:'))return img.src;try{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;c.getContext('2d').drawImage(img,0,0);return c.toDataURL('image/png');}catch(e){return null;}}
+function downloadTpl(name,t){const f={dexmoonTemplates:1,templates:{[name]:t}};const a=document.createElement('a');
+  a.download=name.replace(/[^\w-]+/g,'_')+'.dexmoon.json';a.href=URL.createObjectURL(new Blob([JSON.stringify(f,null,1)],{type:'application/json'}));a.click();}
+document.getElementById('tplSaveDl').onclick=()=>{const n=document.getElementById('tplName').value.trim(),m=document.querySelector('input[name=tplMode]:checked').value;
+  saveTpl(n,m);const t=tplAll()[n];if(t)downloadTpl(n,t);};
 document.getElementById('tplSave').onclick=()=>saveTpl(document.getElementById('tplName').value,document.querySelector('input[name=tplMode]:checked').value);
 document.getElementById('tplName').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('tplSave').click();});
 // Export = every saved template (+ the current card as "current") in one file; Import accepts that file or an old single-preset file

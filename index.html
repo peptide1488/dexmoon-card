@@ -426,6 +426,9 @@ window.dexCard=async(o={})=>{C=JSON.parse(JSON.stringify(DEFAULT));if(o.theme){c
   if(o.handle!=null)C.handle.text=(o.handle.startsWith('@')?'':'@')+o.handle; if(o.refcode!=null)C.footer.code=o.refcode;
   if(o.heroSize!=null)C.hero.r=330*parseFloat(o.heroSize)/100;
   if(o.mode)C.hero.mode=String(o.mode).toLowerCase();
+  // automation: anything not supplied is hidden instead of printing a [PLACEHOLDER]
+  if(o.handle==null||String(o.handle).trim()===''){C.handle.show=false;C.avatar.show=!!o.avatar;}
+  if(o.refcode==null||String(o.refcode).trim()===''){C.footer.code='';C.footer.promo=C.footer.promo.replace(/\s*·\s*code\s*$/i,'');}
   if(o.site!=null)C.footer.site=o.site; if(o.promo!=null)C.footer.promo=o.promo;
   IM.hero=o.hero?await loadImg(o.hero):null; IM.avatar=o.avatar?await loadImg(o.avatar):null;
   await document.fonts.ready; SEL=null; render(); buildPanel(); return exportURL(o.scale||2);};

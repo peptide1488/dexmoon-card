@@ -1,5 +1,7 @@
 # Dexmoon DEX PAID card maker
 
+User guide: [USER_GUIDE.md](USER_GUIDE.md) · Bot source: https://github.com/peptide1488/dexmoon-bot
+
 Open the live tool: https://peptide1488.github.io/dexmoon-card/
 
 - Paste a Dexscreener / CoinMarketCap link -> name, ticker, chain, X handle and pfp fill in

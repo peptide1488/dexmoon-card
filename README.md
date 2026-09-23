@@ -1,8 +1,8 @@
 # Dexmoon DEX PAID card maker
 
-User guide: [USER_GUIDE.md](USER_GUIDE.md) · Bot source: https://github.com/peptide1488/dexmoon-bot
+User guide: [USER_GUIDE.md](USER_GUIDE.md) · Bot source: https://github.com/peptide1488/test-cards
 
-Open the live tool: https://peptide1488.github.io/dexmoon-card/
+Open the live tool: https://peptide1488.github.io/test-cards-web/
 
 - Paste a Dexscreener / CoinMarketCap link -> name, ticker, chain, X handle and pfp fill in
 - Drop a hero image (transparent PNG = Hero mode, anything else = round PFP mode)
